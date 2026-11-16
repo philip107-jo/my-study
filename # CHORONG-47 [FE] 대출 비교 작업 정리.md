@@ -11,10 +11,10 @@
 
 | 구분 | 개수 |
 |---|---|
-| 새로 만든 파일 | 16개 |
+| 새로 만든 파일 | 15개 (테스트 파일 2개 포함) |
 | 기존 파일에 추가 | 10개 |
-| 테스트 | 61개 통과 (이 작업에서 새로 쓴 테스트 포함) |
-| 검사 | `npm run lint && npm test && npm run build` 통과 (PowerShell 기준) |
+| 테스트 | 80개 통과 (5개 파일. 이 작업에서 새로 쓴 것: loanMath 37개, getTermOptions 6개, format 추가분) |
+| 검사 | `npm run lint && npm test && npm run build` 통과 (cmd, PowerShell 기준) |
 
 ## 2. 새로 만든 파일
 
@@ -25,8 +25,9 @@
 | `pages/ComparePage.jsx` | CP-01 | `/compare` 화면. 비교함의 A, B 상품을 서버에서 받아 와 카드, 판정, 비교표를 보여 줌. 금액, 기간 입력 검사, 두 상품 한도와 기간에 맞게 자동 조정 + 알림, [결과 저장] (요청 중 버튼 잠금, 409 안내) |
 | `store/useCompareStore.js` | ST-04 | 비교함 스토어. `tray`(담는 중), `pair`(비교 화면 A, B), `swapSlot`, `from`. `tray`, `pair`만 sessionStorage에 저장 |
 | `api/myApi.js` | API-20, 21, 23 | `getLikes`, `getRecentViews`, `postCompare` |
-| `utils/loanMath.js` | CP-02, 03, 05 | 금리 중간값, 원리금균등 월 상환액과 총이자, 항목별 유리 판정 |
-| `utils/loanMath.test.js` | - | 위 계산의 테스트 |
+| `utils/loanMath.js` | CP-01, 02, 03, 05 | 금리 중간값, 원리금균등 월 상환액과 총이자, 항목별 유리 판정, 금액·기간 자동 조정(`adjustCompareInput`, 처음엔 페이지 안에 있다가 테스트하려고 옮김) |
+| `utils/loanMath.test.js` | - | 위 계산의 테스트 (37개, 테스트 하나에 확인 하나) |
+| `constants/options.test.js` | - | 상환 기간 선택지(`getTermOptions`)의 테스트 (6개) |
 
 ### 비교함, 필터 띠 (`components/common/`)
 
@@ -112,7 +113,10 @@
 
 ## 8. 확인할 점
 
-- Git Bash에서 `npm test`가 `Cannot read properties of undefined (reading 'config')`로 전부 실패함. 손대지 않은 테스트도 같고 PowerShell에서는 통과. 원인은 못 찾음
+- Git Bash에서 `npm test`가 `Cannot read properties of undefined (reading 'config')`로 전부 실패함. 손대지 않은 테스트도 같고 cmd, PowerShell에서는 통과. 원인은 못 찾음 (VSCode 터미널이 cmd면 영향 없음)
+- 전월세 상품 하나만 칸에 있으면 기간 칩에 선택된 것이 없어 "상환 기간을 골라 주세요"가 보임. 두 상품이 다 들어오면 자동으로 맞춰짐
+- 명세서 CP-01의 `getCompares`, `deleteCompares`는 이 화면이 안 써서 만들지 않음 (MY 화면 CHORONG-43 몫)
+- 컴포넌트 테스트와 스토어 동작 테스트는 요청이 있을 때만 쓰는 규칙이라 만들지 않음
 - 서버 API는 실제로 호출해 본 적 없음 (API-03은 CHORONG-46 백엔드 브랜치가 `develop`에 합쳐져야 실서버로 확인 가능). 아래 가짜 서버로 화면만 확인
 - 브라우저에서 직접 눌러 본 확인은 아직 필요 (서버 렌더 결과만 시안과 대조)
 
@@ -122,8 +126,8 @@
 
 1. 가짜 서버 실행 (포트 4010):
    `node "C:\Users\user1\AppData\Local\Temp\claude\407613049977fed9\2b23827f-452e-479d-ab58-5d7541042c1e\scratchpad\mock-server.cjs"`
-2. 개발 서버를 가짜 서버에 연결해 실행 (PowerShell, `frontend` 폴더):
-   `$env:VITE_API_BASE_URL='http://localhost:4010'; npm run dev -- --port 5174 --strictPort`
+2. 개발 서버를 가짜 서버에 연결해 실행 (cmd, `frontend` 폴더. `&&` 앞에 공백을 넣지 않기):
+   `set VITE_API_BASE_URL=http://localhost:4010&& npm run dev -- --port 5174 --strictPort`
 3. http://localhost:5174/compare 접속 → 오른쪽 "비교할 상품 고르기"에서 카드를 눌러 A, B 채우기
 4. 시험 조합
    - 1번 + 2번: 같은 용도 비교
@@ -139,15 +143,20 @@
 
 ## 10. 커밋 (직접 실행)
 
+**1차 (이미 커밋함)**: `8a974fb CHORONG-47 [FE] 대출 비교: 비교함, 비교 화면, 비교 계산, [+ 비교] 연결`
+
+**2차 (테스트 보강, 아직 커밋 전)**: 바뀐 파일은 `ComparePage.jsx`, `loanMath.js`, `loanMath.test.js`, `options.test.js`(새 파일). `ml/venv/`는 이 작업과 무관하니 add하지 않기
+
+cmd에서는 `-m`을 두 번 써야 Co-Authored-By가 별도 줄로 들어감.
+
 ```
 git status
 git add frontend/src
-git commit -m "CHORONG-47 [FE] 대출 비교: 비교함, 비교 화면, 비교 계산, [+ 비교] 연결"
+git commit -m "CHORONG-47 [FE] 비교 계산 테스트 보강, 금액/기간 조정 계산을 utils로 이동" -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 git push origin CHORONG-47-fe-대출-비교-기능-프론트엔드
 ```
 
-- 커밋 메시지 끝에 `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` 줄을 붙이기
-- PR 대상은 `develop`, PR 제목에도 `CHORONG-47` 포함
+- PR 대상은 `develop`, PR 제목에도 `CHORONG-47` 포함 (이미 PR을 올렸으면 push만 해도 따라 붙음)
 - `docs/`는 `.gitignore` 대상이라 이 파일은 커밋되지 않음
 
 ## 11. 관련 기록
